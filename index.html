@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EasyBuy WhatsApp bot – flow prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#e9e6df; --ink:#1d1f1e; --muted:#5f6663; --line:#d3cec4; --panel:#fbfaf7;
+  --brand:#d6232b; --wa-head:#008069; --wa-bg:#efeae2; --bubble-in:#ffffff; --bubble-out:#d9fdd3;
+  --chip-ink:#027eb5; --chip-line:#e3e3e3; --new:#fff3a6; --new-line:#e1b100;
+  --trig:#fde3e1; --trig-line:#c4362e; --poss:#ffeedb; --poss-line:#c97a00; --note:#e1f2fb;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --page:#121615; --ink:#e7ebe9; --muted:#9aa4a0; --line:#2d3532; --panel:#1a1f1e;
+    --wa-head:#202c33; --wa-bg:#0b141a; --bubble-in:#202c33; --bubble-out:#005c4b;
+    --chip-ink:#53bdeb; --chip-line:#2a3942; --new:#4a4210; --new-line:#c9a227;
+    --trig:#47201d; --trig-line:#e0645c; --poss:#45321a; --poss-line:#e09b3d; --note:#16313f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --page:#121615; --ink:#e7ebe9; --muted:#9aa4a0; --line:#2d3532; --panel:#1a1f1e;
+  --wa-head:#202c33; --wa-bg:#0b141a; --bubble-in:#202c33; --bubble-out:#005c4b;
+  --chip-ink:#53bdeb; --chip-line:#2a3942; --new:#4a4210; --new-line:#c9a227;
+  --trig:#47201d; --trig-line:#e0645c; --poss:#45321a; --poss-line:#e09b3d; --note:#16313f;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--page);color:var(--ink);font-family:Figtree,system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1180px;margin:0 auto;padding:28px 20px 40px;display:grid;grid-template-columns:400px 1fr;gap:32px;align-items:start}
+@media (max-width:900px){main{grid-template-columns:1fr;padding:16px 12px 32px}}
+/* phone */
+.phone{background:var(--wa-bg);border-radius:28px;border:8px solid #1c1c1c;overflow:hidden;height:min(760px,calc(100vh - 56px));min-height:560px;display:flex;flex-direction:column;box-shadow:0 18px 40px rgba(0,0,0,.18);position:sticky;top:20px}
+@media (max-width:900px){.phone{position:static;height:640px;border-width:6px}}
+.wa-head{background:var(--wa-head);color:#fff;display:flex;align-items:center;gap:10px;padding:12px 14px}
+.avatar{width:38px;height:38px;border-radius:50%;background:#fff;color:var(--brand);display:grid;place-items:center;font-weight:700;font-size:13px;letter-spacing:-.3px;flex:none}
+.wa-head b{display:block;font-size:16px;font-weight:600}
+.wa-head small{opacity:.8;font-size:12px}
+.wa-head button{margin-left:auto;background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:16px;padding:5px 10px;font:inherit;font-size:12px;cursor:pointer}
+.chat{flex:1;overflow-y:auto;padding:14px 10px 8px;display:flex;flex-direction:column;gap:6px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14.2px;line-height:1.4}
+.msg{max-width:84%;padding:7px 9px 6px;border-radius:8px;white-space:pre-wrap;word-wrap:break-word;position:relative}
+.bot{align-self:flex-start;background:var(--bubble-in);border-top-left-radius:2px}
+.me{align-self:flex-end;background:var(--bubble-out);border-top-right-radius:2px}
+.msg a{color:var(--chip-ink)}
+.msg.new{background:var(--new);outline:2px solid var(--new-line)}
+.tag{display:inline-block;font-size:11px;font-weight:600;margin-bottom:3px;color:var(--ink);opacity:.75}
+.sys{align-self:center;max-width:92%;font-size:12.5px;text-align:center;padding:6px 10px;border-radius:8px;background:var(--note)}
+.sys.trig{background:var(--trig);border:1.5px solid var(--trig-line);font-weight:600}
+.sys.poss{background:var(--poss);border:1.5px dashed var(--poss-line)}
+.chips{align-self:flex-start;display:flex;flex-direction:column;gap:4px;width:84%}
+.chips button{background:var(--bubble-in);color:var(--chip-ink);border:1px solid var(--chip-line);border-radius:8px;padding:9px 10px;font:inherit;font-weight:500;cursor:pointer;text-align:center}
+.chips button:hover:not(:disabled){filter:brightness(.97)}
+.chips button:disabled{opacity:.45;cursor:default}
+.chips button:focus-visible,.composer button:focus-visible,.composer input:focus-visible,.wa-head button:focus-visible{outline:3px solid var(--new-line);outline-offset:1px}
+.composer{display:flex;gap:8px;padding:8px;background:var(--wa-bg);border-top:1px solid var(--chip-line)}
+.composer input{flex:1;border:none;border-radius:20px;padding:10px 14px;font:inherit;font-size:14px;background:var(--bubble-in);color:var(--ink)}
+.composer button{border:none;border-radius:50%;width:42px;height:42px;background:var(--wa-head);color:#fff;font-size:17px;cursor:pointer;flex:none}
+.hint{font-size:12px;color:var(--muted);padding:0 12px 8px;background:var(--wa-bg)}
+/* side panel */
+.side h1{font-size:30px;line-height:1.15;margin:4px 0 10px;font-weight:700;letter-spacing:-.4px;max-width:20ch}
+.side p{color:var(--muted);max-width:62ch;line-height:1.55;margin:0 0 14px}
+.keys{display:grid;gap:8px;margin:18px 0 26px;max-width:62ch}
+.key{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45}
+.sw{width:18px;height:18px;border-radius:4px;flex:none;margin-top:2px}
+.sw.new{background:var(--new);border:2px solid var(--new-line)}
+.sw.trig{background:var(--trig);border:2px solid var(--trig-line)}
+.sw.poss{background:var(--poss);border:2px dashed var(--poss-line)}
+h2{font-size:19px;margin:0 0 4px}
+.empty{border:1.5px dashed var(--line);border-radius:12px;padding:22px;color:var(--muted);background:var(--panel)}
+.ticket{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--trig-line);border-radius:10px;padding:14px 16px;margin-bottom:12px;animation:pop .35s ease-out}
+.ticket.poss{border-left:5px dashed var(--poss-line)}
+@keyframes pop{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.ticket{animation:none}}
+.ticket header{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.ticket header b{font-size:16px}
+.ticket header span{font-size:12.5px;color:var(--muted)}
+.ticket dl{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;margin:0;font-size:13.5px}
+.ticket dt{color:var(--muted)}
+.ticket dd{margin:0;word-break:break-word}
+.ticket .next{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.5}
+@media (max-width:520px){.ticket dl{grid-template-columns:1fr}.ticket dt{margin-top:6px}}
+</style>
+</head>
+<body>
+<main>
+  <section class="phone" aria-label="WhatsApp chat with EasyBuy">
+    <div class="wa-head">
+      <div class="avatar" aria-hidden="true">EB</div>
+      <div><b>Easybuy</b><small>WhatsApp Business account</small></div>
+      <button type="button" id="restart">Restart chat</button>
+    </div>
+    <div class="chat" id="chat" aria-live="polite"></div>
+    <div class="hint" id="hint">Type “Hi” to start.</div>
+    <form class="composer" id="composer">
+      <input id="input" autocomplete="off" placeholder="Type a message" aria-label="Message">
+      <button type="submit" aria-label="Send">➤</button>
+    </form>
+  </section>
+
+  <section class="side">
+    <h1>EasyBuy WhatsApp bot, clickable</h1>
+    <p>This prototype follows the Bot_Flow_2 sheet step by step. Chat as a customer on the left; whenever the customer asks to get in touch, the Kapture ticket that Karix would create appears below.</p>
+    <div class="keys">
+      <div class="key"><span class="sw new"></span><span>New steps EasyBuy wants Karix to add: email ID, consent, store details (yellow in the sheet).</span></div>
+      <div class="key"><span class="sw trig"></span><span>Kapture trigger: the customer asks to get in touch, so a ticket is created and the agent replies by email.</span></div>
+      <div class="key"><span class="sw poss"></span><span>Possible trigger: EasyBuy to confirm whether this should also create a Kapture ticket.</span></div>
+    </div>
+    <h2>Kapture tickets from this chat</h2>
+    <p id="count">None yet.</p>
+    <div id="tickets"><div class="empty">Go to Experience &amp; Complaints and choose how to get in touch to see a ticket created here.</div></div>
+  </section>
+</main>
+
+<script>
+(function(){
+const chat=document.getElementById('chat'), input=document.getElementById('input'), hint=document.getElementById('hint');
+const ticketsEl=document.getElementById('tickets'), countEl=document.getElementById('count');
+let pending=null, ended=true, ctx={}, ticketNo=1000, tickets=0;
+
+const STORES=[
+ {city:'Hyderabad',store:'Mantra Mall',map:'https://maps.google.com/maps?cid=1985355569644735478'},
+ {city:'Bangalore',store:'JP Nagar',map:'https://maps.google.com/maps?cid=17881076341568719564'},
+ {city:'Chennai',store:'T-Nagar',map:'https://maps.google.com/maps?cid=11376369841131176420'},
+ {city:'Mumbai',store:'Kalyan',map:'https://maps.google.com/maps?cid=8114690384001313276'},
+ {city:'Lucknow',store:'Lucknow',map:'https://maps.google.com/maps?cid=16002133516412079041'},
+ {city:'Kozhikode',store:'Kozhikode',map:'https://maps.google.com/maps?cid=5366820015237688128'}
+];
+
+function scroll(){chat.scrollTop=chat.scrollHeight}
+function linkify(el,text){
+  const parts=text.split(/(https:\/\/\S+)/g);
+  parts.forEach(p=>{ if(/^https:\/\//.test(p)){const a=document.createElement('a');a.href=p;a.target='_blank';a.rel='noopener';a.textContent=p;el.appendChild(a)} else el.appendChild(document.createTextNode(p)) });
+}
+function bot(text,isNew){
+  const d=document.createElement('div'); d.className='msg bot'+(isNew?' new':'');
+  if(isNew){const t=document.createElement('span');t.className='tag';t.textContent='New step for Karix';d.appendChild(t);d.appendChild(document.createElement('br'))}
+  linkify(d,text); chat.appendChild(d); scroll();
+}
+function me(text){const d=document.createElement('div');d.className='msg me';d.textContent=text;chat.appendChild(d);scroll()}
+function sys(text,kind){const d=document.createElement('div');d.className='sys'+(kind?' '+kind:'');d.textContent=text;chat.appendChild(d);scroll()}
+function choose(options){
+  pending=null; hint.textContent='Tap an option.';
+  const wrap=document.createElement('div'); wrap.className='chips';
+  options.forEach(([label,fn])=>{
+    const b=document.createElement('button'); b.type='button'; b.textContent=label;
+    b.addEventListener('click',()=>{ wrap.querySelectorAll('button').forEach(x=>x.disabled=true); me(label); setTimeout(fn,350) });
+    wrap.appendChild(b);
+  });
+  chat.appendChild(wrap); scroll();
+}
+function ask(placeholder,check,fn){
+  pending={check,fn}; hint.textContent=placeholder; input.placeholder=placeholder; input.focus();
+}
+const BACK=[['Go back to Main Menu',mainMenu],['End Session',endSession]];
+function endSession(){ended=true;sys('Session ended. Type “Hi” to start again.');hint.textContent='Type “Hi” to start.';input.placeholder='Type a message'}
+
+function mainMenu(){
+  ended=false; ctx={};
+  bot('Main Menu');
+  choose([['Store Locator',storeLocator],['Order History / E-invoice',einvoice],['Exchange',exchange],['Ongoing Offers',offers],['Experience & Complaints',experience],['Social Media',social],['Talk to Support',talkSupport]]);
+}
+function storeLocator(){
+  bot('City [Search / Drop Down]');
+  choose(STORES.map(s=>[s.city,()=>{bot(s.store+' - '+s.map);choose(BACK)}]).concat(BACK));
+}
+function einvoice(){
+  bot('Dear xxxxxxxxxxx,\n\nPlease click the link below to download your e-invoice.\n\nStep 1 - Open the link below and enter the mobile number provided during billing.\n\nStep 2 - An OTP will be sent to your registered mobile number. Enter the OTP to download your e-invoice.\n\nLink - https://ebill.easybuyindia.com/\n\nIs there anything else I can help you with?');
+  choose(BACK);
+}
+function offers(){bot('Buy 2 @199 & Buy 3 @249 on Selected Merchandise\n\nOffer Valid Till 31st May');choose(BACK)}
+function social(){bot('Instagram - @Easybuylife\nFacebook - Easybuy\nWebsite - Easybuyindia.com\nEmail - customercare@easybuyindia.com');choose(BACK)}
+function talkSupport(){
+  bot('18002024454');
+  sys('Possible Kapture trigger: EasyBuy to confirm whether “Talk to Support” from the main menu should create a ticket.','poss');
+  choose(BACK);
+}
+
+/* new yellow steps: email, consent, store */
+function collectDetails(next){
+  bot('Please share your Email ID',true);
+  ask('Type your email ID',v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)?null:'That doesn’t look like an email ID. Please type it as name@example.com.',v=>{
+    ctx.email=v;
+    bot('Do you consent to EasyBuy using your Email / Ph for further communication?',true);
+    choose([['Yes',()=>{ctx.consent='Yes';askStore(next)}],['No',()=>{ctx.consent='No';endSession()}]]);
+  });
+}
+function askStore(next){
+  bot('Store Details',true);
+  choose(STORES.map(s=>[s.store+', '+s.city,()=>{ctx.store=s.store+', '+s.city;next()}]).concat([['Other store',()=>{
+    ask('Type the store name',v=>v.length<2?'Please type the store name.':null,v=>{ctx.store=v;next()});
+  }]]));
+}
+
+function exchange(){
+  bot('Exchange');
+  choose([
+    ['Exchange Policy',()=>{bot('Exchange within 30 days of purchase at your nearest EasyBuy store - no questions asked.');choose(BACK)}],
+    ['Exchange Request',()=>{ctx.flow='Exchange';collectDetails(exchangeReason)}],
+    ['Credit Note Validity',()=>{bot('90 Days from the date of issuance');choose(BACK)}]
+  ].concat(BACK));
+}
+function exchangeReason(final){
+  bot('Reason for Exchange');
+  const reasons=['Damaged Product','Size Issue','Color Fading','Quality Issue'];
+  choose(reasons.map(r=>[r,()=>{ctx.reason=r;picture(final)}]).concat(BACK));
+}
+function picture(final){
+  bot('Please upload a picture of the product.');
+  choose([['📷 Upload picture',()=>{ctx.picture='Uploaded';submitted(final)}]].concat(BACK));
+}
+function submitted(final){
+  const text=final==='product'
+    ?'Your request has been submitted successfully.\n\nPlease choose one of the following options:\n\n- Visit your nearest EasyBuy store for further processing.\n- Receive a Credit Note for future purchases at EasyBuy (valid for 90 days).'
+    :'Your request has been submitted.\n\nPlease choose one of the following options:\n\nVisit your nearest EasyBuy store for further processing.\nReceive a Credit Note for future purchases at EasyBuy (valid for 90 days).';
+  bot(text);
+  const pick=opt=>{ctx.choice=opt;addTicket('Exchange request submitted',true);sys('Possible Kapture trigger: EasyBuy to confirm whether exchange requests should create a ticket.','poss');choose(BACK)};
+  choose([['Visit nearest store',()=>pick('Visit nearest store')],['Receive a Credit Note',()=>pick('Receive a Credit Note')]].concat(BACK));
+}
+
+const CATS={
+ 'Staff Feedback':['Staff Behaviour','Staff Helpfulness'],
+ 'Store Related':['Ambience','Others'],
+ 'Billing':['Long Queue','Slow Billing','Bill Not Provided'],
+ 'Exchange a Product':['Exchange Taking Too Long','Credit Note Not Received'],
+ 'Offers & Promotions':['Offer Mismatch'],
+ 'Product Related':['Quality Issue','Color Issue']
+};
+function experience(){ctx.flow='Experience & Complaints';collectDetails(categories)}
+function categories(){
+  bot('Please choose your issue.');
+  choose(Object.keys(CATS).map(c=>[c,()=>{ctx.category=c;subReason(c)}]).concat(BACK));
+}
+function subReason(c){
+  bot(c);
+  choose(CATS[c].map(s=>[s,()=>{ctx.sub=s;afterSub(c)}]).concat(BACK));
+}
+function afterSub(c){
+  if(c==='Staff Feedback'){
+    bot('Select a Store-\n\nYour last visited stores:\n\n[Store 1]\n[Store 2]\n\nOr search for another store using the Store Locator.');
+    choose([['[Store 1]',()=>{ctx.selected='[Store 1]';getInTouch()}],['[Store 2]',()=>{ctx.selected='[Store 2]';getInTouch()}],['Search with Store Locator',()=>{
+      choose(STORES.map(s=>[s.store+', '+s.city,()=>{ctx.selected=s.store+', '+s.city;getInTouch()}]));
+    }]]);
+  } else if(c==='Store Related'){
+    bot('Elaborate');
+    ask('Describe the issue',v=>v.length<3?'Please add a few words about the issue.':null,v=>{ctx.details=v;getInTouch()});
+  } else if(c==='Product Related'){
+    bot('We apologize for the inconvenience.\n\nEasyBuy offers a 30-day exchange policy from the date of purchase.\n\nWould you like to exchange your product?');
+    choose([['Exchange',()=>exchangeReason('product')]].concat(BACK));
+  } else getInTouch();
+}
+function getInTouch(){
+  bot('Thank you for your response. How would you like to get in touch with us?');
+  choose([
+    ['Arrange a Call Back',()=>trigger('Arrange a Call Back',null)],
+    ['Connect Instantly',()=>trigger('Connect Instantly','Name: XYZ\nDesignation: Business Manager\nMobile: +91 923XXXXX98')],
+    ['Talk to Support',()=>trigger('Talk to Support',null)]
+  ].concat([['Back to Main Menu',mainMenu],['End Session',endSession]]));
+}
+function trigger(option,response){
+  if(response) bot(response); else sys('Bot response for “'+option+'” is not defined in the sheet.');
+  addTicket(option,false);
+  sys('Kapture trigger: ticket created. The agent will reply by email.','trig');
+  choose(BACK);
+}
+
+function addTicket(trig,possible){
+  if(!tickets) ticketsEl.textContent='';
+  tickets++; ticketNo++;
+  countEl.textContent=tickets+(tickets===1?' ticket':' tickets')+' from this chat.';
+  const t=document.createElement('article'); t.className='ticket'+(possible?' poss':'');
+  const h=document.createElement('header');
+  const b=document.createElement('b'); b.textContent=(possible?'Possible ticket ':'Ticket ')+'#EB-'+ticketNo;
+  const s=document.createElement('span'); s.textContent='Source: WhatsApp (Karix), '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  h.append(b,s); t.appendChild(h);
+  const rows=[['Trigger',trig],['Bot flow',ctx.flow],['Customer phone','WhatsApp number (passed by Karix)'],['Email ID',ctx.email],['Consent',ctx.consent],['Store',ctx.store],
+    ['Category',ctx.category],['Sub-reason',ctx.sub],['Store selected',ctx.selected],['Details',ctx.details],['Exchange reason',ctx.reason],['Picture',ctx.picture],['Customer chose',ctx.choice],['Routed to','Store user for '+(ctx.store||'the store')+' (central queue if no store)']];
+  const dl=document.createElement('dl');
+  rows.filter(r=>r[1]).forEach(([k,v])=>{const dt=document.createElement('dt');dt.textContent=k;const dd=document.createElement('dd');dd.textContent=v;dl.append(dt,dd)});
+  t.appendChild(dl);
+  const n=document.createElement('div'); n.className='next';
+  n.textContent=possible?'Pending EasyBuy confirmation that this step should create a ticket.':'Next in Kapture: agent adds the customer, emails them from the ticket, and closes it with a disposition.';
+  t.appendChild(n);
+  ticketsEl.prepend(t);
+}
+
+document.getElementById('composer').addEventListener('submit',e=>{
+  e.preventDefault(); const v=input.value.trim(); if(!v) return; input.value='';
+  me(v);
+  if(pending){
+    const err=pending.check(v); if(err){setTimeout(()=>bot(err),300);return}
+    const fn=pending.fn; pending=null; input.placeholder='Type a message'; setTimeout(()=>fn(v),350); return;
+  }
+  if(/^(hi|hello|hey)\b/i.test(v)){setTimeout(mainMenu,350);return}
+  setTimeout(()=>sys(ended?'Type “Hi” to start a new session.':'Please tap one of the options above.'),300);
+});
+document.getElementById('restart').addEventListener('click',()=>{chat.textContent='';pending=null;ended=true;ctx={};hint.textContent='Type “Hi” to start.';input.placeholder='Type a message';input.focus()});
+})();
+</script>
+</body>
+</html>
